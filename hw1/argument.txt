@@ -1,0 +1,6 @@
+python main.py -d database.dat --create -i input.txt
+Running with input file composed of ~100,000 pairs of words took around 3s
+python main.py -d database.dat --update -i update.txt
+Running with update file composed of ~30,000 pairs of words took around 190s
+python main.py -d database.dat --lookup -i lookup.txt
+Running with lookup file composed of ~30,000 pairs of words (and words) took around 3s
