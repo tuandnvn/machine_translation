@@ -18,41 +18,41 @@ class DatabaseConnector(object):
         '''
         self.database_file_name = database_file_name
     
-    def set_up_connection(self):
+    def setupConnection(self):
         self.conn = sqlite3.connect(self.database_file_name)
         self.conn.text_factory = str
         self.c = self.conn.cursor()
         
-    def close_connection(self):
+    def closeConnection(self):
         self.conn.close()
         
-    def create_database(self):
+    def createDatabase(self):
         # Create table
-        self.set_up_connection()
+        self.setupConnection()
         self.c.execute('''CREATE TABLE IF NOT EXISTS Word_pair_prob
                      (Src_word text, Des_word text, Prob real, PRIMARY KEY(Src_word, Des_word))''')
         
-    def update(self, src, des, prob):
+    def update(self, src, tar, prob):
         ## Insert team information into Team table
         try:
-            self.c.execute("INSERT INTO Word_pair_prob VALUES ('%s','%s',%d)" %(src, des, prob) )
+            self.c.execute("INSERT INTO Word_pair_prob VALUES ('%s','%s',%d)" %(src, tar, prob) )
         except IntegrityError:
             try:
-                self.c.execute("UPDATE Word_pair_prob SET Prob=%d WHERE Src_word='%s' AND Des_word='%s'" %(prob, src, des) )
+                self.c.execute("UPDATE Word_pair_prob SET Prob=%d WHERE Src_word='%s' AND Des_word='%s'" %(prob, src, tar) )
             except IntegrityError as e:
                 print e
     
     def commit(self):
         self.conn.commit()
         
-    def insert_many(self, list_of_values ):
+    def insertMany(self, list_of_values ):
         try:
             self.c.executemany("INSERT INTO Word_pair_prob VALUES (?,?,?)", list_of_values )
             self.commit()
         except IntegrityError as e:
             print e
              
-    def update_many(self, list_of_values):
+    def updateMany(self, list_of_values):
         for values in list_of_values:
             try:
                 self.c.execute("INSERT INTO Word_pair_prob VALUES (?,?,?)", values )
@@ -61,7 +61,7 @@ class DatabaseConnector(object):
                 self.c.execute("UPDATE Word_pair_prob SET Prob=? WHERE Src_word=? AND Des_word=?" , values)
                 self.commit()
     
-    def print_all(self):
+    def printAll(self):
         self.c.execute('''SELECT * FROM Word_pair_prob''')
         results = self.c.fetchall()
         for result in results:

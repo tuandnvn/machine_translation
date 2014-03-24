@@ -31,16 +31,16 @@ if __name__ == '__main__':
     begin_time = time.time()
     
     args = vars(parser.parse_args())
-    dictionary_file = args['database'][0]
+    model_file = args['database'][0]
     input_file = args['input'][0]
     
-    database = DatabaseConnector(dictionary_file)
-    print dictionary_file
+    database = DatabaseConnector(model_file)
+    print model_file
     try:
-        open(dictionary_file,'r')
+        open(model_file,'r')
     except Exception:
-        database.create_database()
-    database.set_up_connection()
+        database.createDatabase()
+    database.setupConnection()
     
     
     if args['create'] != None or args['update'] != None:
@@ -58,9 +58,9 @@ if __name__ == '__main__':
                 prob = prob.strip()
                 input_data.append( (src_word, des_word, float(prob)) )
             if args['create'] != None:
-                database.insert_many(input_data)
+                database.insertMany(input_data)
             else:
-                database.update_many(input_data)
+                database.updateMany(input_data)
                 
     if args['lookup'] != None:
         """
