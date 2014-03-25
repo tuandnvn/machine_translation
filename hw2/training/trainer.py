@@ -9,14 +9,16 @@ import time
 
 from hw2.database.connection import DatabaseConnector
 from hw2.dictionary.dictionary import Dictionary
-from hw2.training.model_handler import Model_Handler
+from hw2.training.model_handler import MTModelHandler
 from hw2.util import *
 import numpy as np
 
 
-class Trainer(Model_Handler):
+class Trainer(MTModelHandler):
     '''
-    classdocs
+    Trainer class handle all training routines.
+    Inherit from MTModelHandler because it needs to deal with a model file 
+        *(train the model and save into the model file)* 
     '''
     
     def __init__(self, target_lan_file_name,
@@ -28,7 +30,7 @@ class Trainer(Model_Handler):
                  no_of_iterations,
                  model_file_name,
                  convergence_difference,
-                 isVerbatim):
+                 verbatim):
         '''
         Arguments:
         target_lan_file_name -- string, file name of target language  
@@ -36,12 +38,12 @@ class Trainer(Model_Handler):
         source_lan_file_name -- string, file name of source language  
         source_lang -- string, source language string
         '''
-        Model_Handler.__init__(self, target_lan_file_name, target_lang,
+        MTModelHandler.__init__(self, target_lan_file_name, target_lang,
                                target_dict_file_name,
                                source_lan_file_name, source_lang,
                                source_dict_file_name,
                                model_file_name,
-                               isVerbatim)
+                               verbatim)
         self.no_of_iterations = no_of_iterations
         self.convergence_difference = convergence_difference
         
@@ -50,7 +52,16 @@ class Trainer(Model_Handler):
         self.t_e_f = None
         self.log_likelihood = None
     
+    def isVerbatim(self):
+        '''
+        Return if the trainer is verbatim or not.
+        '''
+        return self.verbatim
+    
     def train(self):
+        '''
+        Train the model given the input parallel corpus
+        '''
         begin_time = time.time()
         self.initListOfParallelSentences()
         self.buildDictionarySaveToFile()
@@ -66,7 +77,7 @@ class Trainer(Model_Handler):
         
     def initListOfParallelSentences(self):
         """
-        Init parallel sentences for runEMTrainingLoop data only
+        Init parallel sentences for runEMTrainingLoop data
         """
         temporary = [[], []]
         with codecs.open(self.target_lan_file_name, 'r', CODEC) as target_file_handler:
@@ -95,6 +106,10 @@ class Trainer(Model_Handler):
     
              
     def buildDictionary(self):
+        '''
+        Feed the tokens from the training corpus to create two dictionaries 
+        that match each token with an index
+        '''
         self.list_of_parallel_indices = []
         for (target_line, source_line) in self.list_of_parallel_sentences:
             target_length, target_tokens, source_length, source_tokens = \
@@ -108,8 +123,10 @@ class Trainer(Model_Handler):
                                                   source_length, source_token_indices))
         self.target_lexicon_size = self.dictionary[self.target_lang].getDictSize()
         self.source_lexicon_size = self.dictionary[self.source_lang].getDictSize()
-        print 'self.target_lexicon_size ' + str(self.target_lexicon_size)
-        print 'self.source_lexicon_size ' + str(self.source_lexicon_size)
+        
+        if self.isVerbatim():
+            print 'self.target_lexicon_size ' + str(self.target_lexicon_size)
+            print 'self.source_lexicon_size ' + str(self.source_lexicon_size)
     
     def buildDictionarySaveToFile(self):
         '''
@@ -120,7 +137,7 @@ class Trainer(Model_Handler):
         self.saveDictionary()
     
     def saveToDatabaseModelFile(self):
-        self.model_database_connect(self.model_file_name)
+        self.modelDatabaseConnect(self.model_file_name)
         
         input_data = []
         for i in xrange(self.target_lexicon_size):
@@ -144,7 +161,7 @@ class Trainer(Model_Handler):
                                                                    target_token_indices,
                                                                    source_length,
                                                                    source_token_indices)
-        if self.isVerbatim:
+        if self.isVerbatim():
             print 'log_likelihood ' + str(log_likelihood)
         if self.log_likelihood == None:
             self.log_likelihood = log_likelihood
@@ -176,7 +193,7 @@ class Trainer(Model_Handler):
         for i in xrange(self.no_of_iterations):
             self.c_e_f = np.zeros((self.target_lexicon_size, self.source_lexicon_size))
             self.total_f = np.zeros(self.source_lexicon_size)
-            if self.isVerbatim:
+            if self.isVerbatim():
                 print 'Iteration ' + str(i)
             for (target_length, target_token_indices,
                  source_length, source_token_indices) in self.list_of_parallel_indices:

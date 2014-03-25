@@ -10,7 +10,12 @@ import numpy as np
 from hw2.util import *
 
 
-class Model_Handler():
+class MTModelHandler():
+    '''
+    A handler for machine translation, handling input corpus of parallel sentences,
+    dictionary files to map between lexicons and indices. 
+    '''
+    
     def __init__(self, target_lan_file_name,
                  target_lang,
                  target_dict_file_name,
@@ -18,7 +23,7 @@ class Model_Handler():
                  source_lang,
                  source_dict_file_name,
                  model_file_name,
-                 isVerbatim):
+                 verbatim):
         '''
         we assume that language_1 is target (english), language_2 is foreign (spanish)
         '''
@@ -32,7 +37,7 @@ class Model_Handler():
         
         self.model_file_name = model_file_name
         self.dictionary = {self.target_lang:Dictionary(), self.source_lang:Dictionary()}
-        self.isVerbatim = isVerbatim
+        self.verbatim = verbatim
     
     def saveDictionary(self):
         '''
@@ -95,7 +100,9 @@ class Model_Handler():
         translation_prob_log = sum_over_target - target_length * np.log(source_length)
         return translation_prob_log
        
-    def model_database_connect(self, model_file_name):
+    def modelDatabaseConnect(self, model_file_name):
+        '''
+        '''
         self.database = DatabaseConnector(model_file_name)
         try:
             open(model_file_name, 'r')

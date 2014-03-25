@@ -5,12 +5,12 @@ Created on Mar 23, 2014
 '''
 import time
 
-from hw2.training.model_handler import Model_Handler
+from hw2.training.model_handler import MTModelHandler
 from hw2.util import *
 import numpy as np
 
 
-class Evaluator(Model_Handler):
+class Evaluator(MTModelHandler):
     '''
     Class to handle evaluate the learned parameters using the input files. 
     The input files take in two files: one of target language (English) and 
@@ -32,7 +32,7 @@ class Evaluator(Model_Handler):
                  source_lan_file_name,
                  source_lang,
                  source_dict_file_name,
-                 model_file_name, isVerbatim):
+                 model_file_name, verbatim):
         '''
         Arguments:
         target_lan_file_name -- string, file name of target language  
@@ -42,11 +42,11 @@ class Evaluator(Model_Handler):
         source_lang -- string, source language string 
         source_dict_file_name -- string, the dictionary file for indexing tokens
         '''
-        Model_Handler.__init__(self, target_lan_file_name, target_lang,
+        MTModelHandler.__init__(self, target_lan_file_name, target_lang,
                                target_dict_file_name,
                                source_lan_file_name, source_lang,
                                source_dict_file_name,
-                               model_file_name, isVerbatim)
+                               model_file_name, verbatim)
         self.dict_of_parallel_sentences = {}
     
     def evaluate(self):
@@ -93,7 +93,7 @@ class Evaluator(Model_Handler):
         Arguments:
         model_file_name -- string, file name of model
         '''
-        self.model_database_connect(self.model_file_name)
+        self.modelDatabaseConnect(self.model_file_name)
         self.target_lexicon_size = int(self.database.countNumberOfTargetIndices())
         self.source_lexicon_size = int(self.database.countNumberOfSourceIndices())
         model_values = self.database.selectAll()
@@ -133,8 +133,8 @@ class Evaluator(Model_Handler):
                                                                             target_token_indices,
                                                                             source_length,
                                                                             source_token_indices)
-                if self.isVerbatim:
-                    print '%s logP(e|f)= %f' % (list_of_targets[i], translation_prob_log)
+                if self.verbatim:
+                    print '** %s logP(e|f)= %f' % (list_of_targets[i], translation_prob_log)
                 if largest_translation_prob_log == None:
                     largest_translation_prob_log = translation_prob_log 
                     best_translation = i
@@ -142,7 +142,7 @@ class Evaluator(Model_Handler):
                     largest_translation_prob_log = translation_prob_log
                     best_translation = i
             evaluate_result[matching_index] = list_of_targets[best_translation]
-            if self.isVerbatim:
+            if self.verbatim:
                 print 'Best matching sentence: '
             print '%s %s' % (matching_index, evaluate_result[matching_index])
             print '=================================================='
@@ -157,7 +157,7 @@ class EvaluatorWithNull(Evaluator):
                  source_lang,
                  source_dict_file_name,
                  model_file_name,
-                 isVerbatim):
+                 verbatim):
         '''
         Arguments:
         target_lan_file_name -- string, file name of target language  
@@ -171,7 +171,7 @@ class EvaluatorWithNull(Evaluator):
                            target_dict_file_name,
                            source_lan_file_name, source_lang,
                            source_dict_file_name,
-                           model_file_name, isVerbatim)
+                           model_file_name, verbatim)
         
     """
     Overriding
