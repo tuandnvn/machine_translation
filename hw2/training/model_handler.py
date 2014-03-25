@@ -17,7 +17,8 @@ class Model_Handler():
                  source_lan_file_name,
                  source_lang,
                  source_dict_file_name,
-                 model_file_name):
+                 model_file_name,
+                 isVerbatim):
         '''
         we assume that language_1 is target (english), language_2 is foreign (spanish)
         '''
@@ -31,6 +32,7 @@ class Model_Handler():
         
         self.model_file_name = model_file_name
         self.dictionary = {self.target_lang:Dictionary(), self.source_lang:Dictionary()}
+        self.isVerbatim = isVerbatim
     
     def saveDictionary(self):
         '''
@@ -64,11 +66,10 @@ class Model_Handler():
     def calculateTranslationProbability(self, target_length,
                                         target_token_indices,
                                         source_length,
-                                        source_token_indices, 
-                                        DEBUG = 1):
+                                        source_token_indices):
         '''
         Calcualte the translation probability based on the IBM model
-        log( target_sentence| source_sentence ) = - len(target_sentence)*log( len(source_sentence) + 1) 
+        log( target_sentence| source_sentence ) = - len(target_sentence)*log( len(source_sentence) ) 
                                                 + SUM_over_target ( log ( SUM_over_source( t_target_source )))
                                                 
         Note that target_length is different from len(target_token_indices) 'cause 
@@ -81,22 +82,17 @@ class Model_Handler():
         source_token_indices -- indices of token given in the source sentence
         '''
         sum_over_target = 0
-        if DEBUG == 3:
-            print target_token_indices
-            print source_token_indices
         for target_token_index in target_token_indices:
             sum_over_source = 0
             for source_token_index in source_token_indices:
-                if DEBUG == 3:
-                    print '%s %s %f' % (self.dictionary[self.target_lang].getToken(target_token_index),
-                                        self.dictionary[self.source_lang].getToken(source_token_index),
-                                        self.t_e_f[target_token_index, source_token_index])
                 sum_over_source += self.t_e_f[target_token_index, source_token_index]
             sum_over_target += np.log(sum_over_source)
         
-        translation_prob_log = sum_over_target - target_length * np.log(source_length + 1)
-        if DEBUG == 2:
-            print 'translation_prob_log ' +str(translation_prob_log)
+        """
+        Here instead of using source_length + 1, I use source_length 
+        only and assume that source_length would already include the NULL token
+        """
+        translation_prob_log = sum_over_target - target_length * np.log(source_length)
         return translation_prob_log
        
     def model_database_connect(self, model_file_name):
@@ -107,11 +103,10 @@ class Model_Handler():
             self.database.createDatabase()
         self.database.setupConnection()
     
-    def lineTokenizer( self, line, language ):
+    def lineTokenizer(self, line, language, language_option ):
         line_tokens = line.split(' ')
         line_length = len(line_tokens)
-        line_token_indices = self.getIndices(line_tokens, language)
-        return (line_length, line_token_indices)
+        return (line_length, line_tokens)
     
     @staticmethod
     def cleanLine(line):
@@ -121,5 +116,5 @@ class Model_Handler():
                 line = line[:-len(ENDING_STR)]
         for BEGINNING_STR in BEGINNING_STRS:
             if line.startswith(BEGINNING_STR):
-                line = line[len(BEGINNING_STR)+1:]
+                line = line[len(BEGINNING_STR) + 1:]
         return line

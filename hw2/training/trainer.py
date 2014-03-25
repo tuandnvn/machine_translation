@@ -27,7 +27,8 @@ class Trainer(Model_Handler):
                  source_dict_file_name,
                  no_of_iterations,
                  model_file_name,
-                 convergence_difference):
+                 convergence_difference,
+                 isVerbatim):
         '''
         Arguments:
         target_lan_file_name -- string, file name of target language  
@@ -39,7 +40,8 @@ class Trainer(Model_Handler):
                                target_dict_file_name,
                                source_lan_file_name, source_lang,
                                source_dict_file_name,
-                               model_file_name)
+                               model_file_name,
+                               isVerbatim)
         self.no_of_iterations = no_of_iterations
         self.convergence_difference = convergence_difference
         
@@ -80,17 +82,30 @@ class Trainer(Model_Handler):
         
         for i in xrange(len(temporary[0])):
             self.list_of_parallel_sentences.append((temporary[0][i], temporary[1][i]))
-                
+    
+    def generateTokens(self, target_line, source_line):
+        '''
+        Given input of two lines, generate the tokens and length of sentence
+        '''
+        target_length, target_tokens = self.lineTokenizer(target_line, self.target_lang,
+                                                          TARGET_LANGUAGE_OPTION)
+        source_length, source_tokens = self.lineTokenizer(source_line, self.source_lang,
+                                                          SOURCE_LANGUAGE_OPTION)
+        return target_length, target_tokens, source_length, source_tokens    
+    
+             
     def buildDictionary(self):
         self.list_of_parallel_indices = []
         for (target_line, source_line) in self.list_of_parallel_sentences:
-            target_tokens, source_tokens = (target_line.split(' '), source_line.split(' '))
+            target_length, target_tokens, source_length, source_tokens = \
+                            self.generateTokens(target_line, source_line)
+            
             self.dictionary[self.target_lang].feedTokens(target_tokens)
             self.dictionary[self.source_lang].feedTokens(source_tokens)
             (target_token_indices, source_token_indices) = (self.getIndices(target_tokens, self.target_lang),
                                                   self.getIndices(source_tokens, self.source_lang))
-            self.list_of_parallel_indices.append((len(target_tokens), target_token_indices,
-                                                  len(source_tokens), source_token_indices))
+            self.list_of_parallel_indices.append((target_length, target_token_indices,
+                                                  source_length, source_token_indices))
         self.target_lexicon_size = self.dictionary[self.target_lang].getDictSize()
         self.source_lexicon_size = self.dictionary[self.source_lang].getDictSize()
         print 'self.target_lexicon_size ' + str(self.target_lexicon_size)
@@ -129,8 +144,8 @@ class Trainer(Model_Handler):
                                                                    target_token_indices,
                                                                    source_length,
                                                                    source_token_indices)
-        
-        print 'log_likelihood ' + str(log_likelihood)
+        if self.isVerbatim:
+            print 'log_likelihood ' + str(log_likelihood)
         if self.log_likelihood == None:
             self.log_likelihood = log_likelihood
             return False
@@ -151,7 +166,7 @@ class Trainer(Model_Handler):
         """
         Uniformly initiated
         """
-        self.t_e_f.fill(float(1) / (self.target_lexicon_size * self.source_lexicon_size))
+        self.t_e_f.fill(float(1) / (self.target_lexicon_size))
         
         """
         count(e|f) is c_e_f
@@ -161,7 +176,8 @@ class Trainer(Model_Handler):
         for i in xrange(self.no_of_iterations):
             self.c_e_f = np.zeros((self.target_lexicon_size, self.source_lexicon_size))
             self.total_f = np.zeros(self.source_lexicon_size)
-            print 'Iteration ' + str(i)
+            if self.isVerbatim:
+                print 'Iteration ' + str(i)
             for (target_length, target_token_indices,
                  source_length, source_token_indices) in self.list_of_parallel_indices:
                 s_total = defaultdict(float)
@@ -179,3 +195,36 @@ class Trainer(Model_Handler):
             self.t_e_f = self.c_e_f / self.total_f
             if self.isConvergent():
                 break
+            
+
+class TrainerWithNull(Trainer):
+    def __init__(self, target_lan_file_name,
+                 target_lang,
+                 target_dict_file_name,
+                 source_lan_file_name,
+                 source_lang,
+                 source_dict_file_name,
+                 no_of_iterations,
+                 model_file_name,
+                 convergence_difference, 
+                 isVerbatim):
+        Trainer.__init__(self, target_lan_file_name, target_lang, 
+                         target_dict_file_name, source_lan_file_name, 
+                         source_lang, source_dict_file_name, 
+                         no_of_iterations, model_file_name,
+                         convergence_difference,
+                         isVerbatim)
+    
+    """
+    Overriding
+    """
+    def lineTokenizer(self, line, language, language_option ):
+        line_tokens = line.split(' ')
+        line_length = len(line_tokens)
+        """
+        Adding the NULL token here
+        """
+        if language_option == SOURCE_LANGUAGE_OPTION:
+            line_tokens.append(None)
+            line_length += 1
+        return (line_length, line_tokens)

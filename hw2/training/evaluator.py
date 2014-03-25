@@ -32,19 +32,21 @@ class Evaluator(Model_Handler):
                  source_lan_file_name,
                  source_lang,
                  source_dict_file_name,
-                 model_file_name):
+                 model_file_name, isVerbatim):
         '''
         Arguments:
         target_lan_file_name -- string, file name of target language  
         target_lang -- string, target language string 
+        target_dict_file_name -- string, the dictionary file for indexing tokens
         source_lan_file_name -- string, file name of source language  
         source_lang -- string, source language string 
+        source_dict_file_name -- string, the dictionary file for indexing tokens
         '''
         Model_Handler.__init__(self, target_lan_file_name, target_lang,
                                target_dict_file_name,
                                source_lan_file_name, source_lang,
                                source_dict_file_name,
-                               model_file_name)
+                               model_file_name, isVerbatim)
         self.dict_of_parallel_sentences = {}
     
     def evaluate(self):
@@ -115,17 +117,24 @@ class Evaluator(Model_Handler):
             """
             
             list_of_targets, source = self.dict_of_parallel_sentences[matching_index]
-            source_length, source_token_indices = self.lineTokenizer(source, self.source_lang)
+            
+            source_length, source_tokens = self.lineTokenizer(source, self.source_lang, 
+                                                              SOURCE_LANGUAGE_OPTION)
+            source_token_indices = self.getIndices(source_tokens, self.source_lang)
             
             best_translation = -1
             largest_translation_prob_log = None
             for i in xrange(len(list_of_targets)):
-                target_length, target_token_indices = self.lineTokenizer(list_of_targets[i], self.target_lang)
+                target_length, target_tokens = self.lineTokenizer(list_of_targets[i], self.target_lang,
+                                                                  TARGET_LANGUAGE_OPTION)
+                target_token_indices = self.getIndices(target_tokens, self.target_lang)
+                
                 translation_prob_log = self.calculateTranslationProbability(target_length,
                                                                             target_token_indices,
                                                                             source_length,
-                                                                            source_token_indices,
-                                                                            DEBUG = 2)
+                                                                            source_token_indices)
+                if self.isVerbatim:
+                    print '%s logP(e|f)= %f' % (list_of_targets[i], translation_prob_log)
                 if largest_translation_prob_log == None:
                     largest_translation_prob_log = translation_prob_log 
                     best_translation = i
@@ -133,5 +142,47 @@ class Evaluator(Model_Handler):
                     largest_translation_prob_log = translation_prob_log
                     best_translation = i
             evaluate_result[matching_index] = list_of_targets[best_translation]
-        print evaluate_result
+            if self.isVerbatim:
+                print 'Best matching sentence: '
+            print '%s %s' % (matching_index, evaluate_result[matching_index])
+            print '=================================================='
         return evaluate_result
+    
+
+class EvaluatorWithNull(Evaluator):
+    def __init__(self, target_lan_file_name,
+                 target_lang,
+                 target_dict_file_name,
+                 source_lan_file_name,
+                 source_lang,
+                 source_dict_file_name,
+                 model_file_name,
+                 isVerbatim):
+        '''
+        Arguments:
+        target_lan_file_name -- string, file name of target language  
+        target_lang -- string, target language string 
+        target_dict_file_name -- string, the dictionary file for indexing tokens
+        source_lan_file_name -- string, file name of source language  
+        source_lang -- string, source language string 
+        source_dict_file_name -- string, the dictionary file for indexing tokens
+        '''
+        Evaluator.__init__(self, target_lan_file_name, target_lang,
+                           target_dict_file_name,
+                           source_lan_file_name, source_lang,
+                           source_dict_file_name,
+                           model_file_name, isVerbatim)
+        
+    """
+    Overriding
+    """
+    def lineTokenizer(self, line, language, language_option ):
+        line_tokens = line.split(' ')
+        line_length = len(line_tokens)
+        """
+        Adding the NULL token here
+        """
+        if language_option == SOURCE_LANGUAGE_OPTION:
+            line_tokens.append(None)
+            line_length += 1
+        return (line_length, line_tokens)

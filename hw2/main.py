@@ -20,7 +20,7 @@ if __name__ == '__main__':
     
     parser = argparse.ArgumentParser(description='IBM Model 1 Machine Translator')
     parser.add_argument('-m', '--%s' % MODE_OPTION, default=EVALUATION_MODE, nargs=1,
-                        choices=[EVALUATION_MODE, TRAIN_MODE, SAMPLING_MODE, DIVIDING_MODE],
+                        choices=[EVALUATION_MODE, TRAIN_MODE, SAMPLING_MODE], # DIVIDING_MODE],
                         help='Specify either runEMTrainingLoop or evaluating mode.')
     parser.add_argument('-s', '--%s' % SOURCE_OPTION, default=None, nargs=2, required=True,
                         help='Specify the source language (the foreign language in IBM model) and source file.')
@@ -28,16 +28,17 @@ if __name__ == '__main__':
                         help='Specify the target language (the English language in IBM model) and target file.')
     parser.add_argument('-i', '--%s' % ITERATION_OPTION, default=None, nargs=1, type=int,
                         help='Specify the maximum iteration.')
-    parser.add_argument('-c', '--%s' % CONVERGENCE_OPTION, nargs=1, type=float, default=0.1,
+    parser.add_argument('-c', '--%s' % CONVERGENCE_OPTION, type=float, default=0.1,
                         help='Specify the convergence difference to stop looping. Default = 0.1')
-    
-    
     parser.add_argument('-x', '--%s' % SAMPLING_OPTION, default=None, nargs=1, type=int,
                         help='Specify the number of sentences should be sampled.')
+    parser.add_argument('-n', '--%s' % NULL_OPTION, default=0, type=int,
+                        help='Specify whether we use null token or not. Default = 0 = False')
+    parser.add_argument('-v', '--%s' % VERBATIM_OPTION, default=1, type=int,
+                        help='Specify whether we should print out some more information. Default = 1 = True')
     parser.add_argument('-p', '--%s' % TDT_PROP_OPTION, default=None, nargs=3, type=float,
                         help='Specify the proportion of sentences should be divided into \
                                 train - dev - test')
-    
     parser.add_argument('-D', '--%s' % DICTIONARY_OPTION, default=None, nargs=2, 
                         help='Specify the dictionary files to be saved for training, or loaded \
                              for testing. The file name should be in the order source dictionary file name \
@@ -60,7 +61,18 @@ if __name__ == '__main__':
     source_file = args[SOURCE_OPTION][FILE_INDEX]
     target_lan = args[TARGET_OPTION][LANG_INDEX]
     target_file = args[TARGET_OPTION][FILE_INDEX]
-
+    
+    null_option = int(args[NULL_OPTION])
+    if null_option == 1:
+        trainerClass = TrainerWithNull
+        evaluatorClass = EvaluatorWithNull
+    else:
+        trainerClass = Trainer
+        evaluatorClass = Evaluator
+    
+    verbatim_option = args[VERBATIM_OPTION]
+    print verbatim_option
+    
     if mode == TRAIN_MODE:
         """
         Training the IBM 1 model and insert into the database
@@ -79,10 +91,11 @@ if __name__ == '__main__':
             raise Exception('Dictionary files are not specified.')
         
         convergence_difference = args[CONVERGENCE_OPTION]
-        trainer_handler = Trainer(target_file, target_lan, target_dictionary_file,
+        print 'CONVERGENCE_OPTION ' + str(convergence_difference)
+        trainer_handler = trainerClass(target_file, target_lan, target_dictionary_file,
                                   source_file, source_lan, source_dictionary_file,
                                   no_of_iterations, model_file_name, 
-                                  convergence_difference)
+                                  convergence_difference, verbatim_option)
         trainer_handler.train()
         
     elif mode == EVALUATION_MODE:
@@ -98,9 +111,9 @@ if __name__ == '__main__':
             source_dictionary_file, target_dictionary_file = args[DICTIONARY_OPTION]
         else:
             raise Exception('Dictionary files are not specified.')
-        evaluator_handler = Evaluator(target_file, target_lan, target_dictionary_file,
+        evaluator_handler = evaluatorClass(target_file, target_lan, target_dictionary_file,
                                   source_file, source_lan, source_dictionary_file,
-                                  model_file_name)
+                                  model_file_name, verbatim_option)
         evaluator_handler.evaluate()
     elif mode == SAMPLING_MODE:
         if args[SAMPLING_OPTION] != None:
@@ -113,13 +126,13 @@ if __name__ == '__main__':
         Sampler.sample(target_file, 
                        target_file + '.' + str(no_of_sentences) + SAMPLING_EXT,
                        no_of_sentences)
-    elif mode == DIVIDING_MODE:
-        if args[TDT_PROP_OPTION] != None:
-            prob = args[TDT_PROP_OPTION]
-        else:
-            raise Exception('The number of samples is not specified.')
-        TrainDevTest.partition(target_file, 'en', source_file, 'es',
-                               [(target_file + TRAIN_EXT, source_file + TRAIN_EXT , prob[0]),
-                                (target_file + DEV_EXT, source_file + DEV_EXT, prob[1]),
-                                (target_file + TEST_EXT, source_file + TEST_EXT, prob[2])])
+#     elif mode == DIVIDING_MODE:
+#         if args[TDT_PROP_OPTION] != None:
+#             prob = args[TDT_PROP_OPTION]
+#         else:
+#             raise Exception('The number of samples is not specified.')
+#         TrainDevTest.partition(target_file, 'en', source_file, 'es',
+#                                [(target_file + TRAIN_EXT, source_file + TRAIN_EXT , prob[0]),
+#                                 (target_file + DEV_EXT, source_file + DEV_EXT, prob[1]),
+#                                 (target_file + TEST_EXT, source_file + TEST_EXT, prob[2])])
     print 'Total time ' + str(time.time() - begin_time)
