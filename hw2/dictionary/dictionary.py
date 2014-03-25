@@ -21,7 +21,7 @@ class Dictionary(object):
         for token in list_of_tokens:
             if token not in self._token_to_index:
                 self._index_to_token.append(token)
-                self._token_to_index[token] = len(self._index_to_token)
+                self._token_to_index[token] = len(self._index_to_token) - 1
     
     def getToken(self, index):
         try:

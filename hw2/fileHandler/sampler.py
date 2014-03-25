@@ -3,6 +3,8 @@ Created on Mar 20, 2014
 
 @author: Tuan
 '''
+from hw2.util import *
+
 
 class Sampler(object):
     '''
@@ -10,25 +12,18 @@ class Sampler(object):
     '''
     
     @classmethod
-    def sample(clr, input_file_name_1,
-                 input_file_name_2,
-                 output_file_name_1,
-                 output_file_name_2,
+    def sample(clr, input_file_name,
+                 output_file_name,
                  no_of_parralel_sentences):
         '''
-        Constructor
+        Class method sample to sample a number of sentences from a file
         '''
-        counter = 0
-        with (open(input_file_name_1, 'r'),
-              open(input_file_name_2, 'r'),
-              open(output_file_name_1, 'w'),
-              open(output_file_name_2, 'w')) as (file_handler_1,
-                                            file_handler_2,
-                                            file_handler_3,
-                                            file_handler_4):
-            for (line_1, line_2) in zip(file_handler_1, file_handler_2):
-                if counter > no_of_parralel_sentences:
-                    return
-                counter += 1
-                file_handler_3.write(line_1)
-                file_handler_4.write(line_2)
+        with codecs.open(input_file_name, 'r', CODEC) as input_file_handler:
+            with codecs.open(output_file_name, 'w', CODEC) as output_file_handler:
+                counter = 0
+                for line in input_file_handler:
+                    if counter > no_of_parralel_sentences:
+                            return
+                    counter += 1
+                    output_file_handler.write(line)
+        

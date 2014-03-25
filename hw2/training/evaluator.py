@@ -3,24 +3,25 @@ Created on Mar 23, 2014
 
 @author: Tuan
 '''
-from hw2.util import *
 from hw2.training.model_handler import Model_Handler
+from hw2.util import *
 import numpy as np
+
 
 class Evaluator(Model_Handler):
     '''
     Class to handle evaluate the learned parameters using the input files. 
     The input files take in two files: one of target language (English) and 
-    one of source language. The former should have multiple candidate translations 
-    for each source sentence in the later.  
-    Therefore, please use the following format to align evaluation files:
+    one of source language. The former should have multiple candidate translations
+    for each source sentence in the later.
+    Therefore, use the following format:
     - Target file
-        1<tab>First candidate for source sentence 1.
-        1<tab>Second candiate for source sentence 1.
-        2<tab>First candidate for source sentence 2.
+        1<tab>First candidate for source sentence 1.
+        1<tab>Second candidate for source sentence 1.
+        2<tab>First candidate for source sentence 2.
     - Source file
-        1<tab>Source sentence 1.
-        2<tab>Source sentence 2.
+        1<tab>Source sentence 1.
+        2<tab>Source sentence 2.
     '''
 
     def __init__(self, target_lan_file_name,
@@ -46,26 +47,26 @@ class Evaluator(Model_Handler):
         The key is the first matching index in each sentence
         The value is a tuple of (list_of_target_sentences, source_sentence)  
         """
-        with (codecs.open(self.target_lan_file_name, 'r', CODEC),
-              codecs.open(self.source_lan_file_name, 'r', CODEC)) as (target_file_handler,
-                                            source_file_handler):
-            """
-            Only work with reasonable inputs, as I'm gonna load the input files into the memory
-            """
-            for source_line in source_file_handler:
-                """
-                Source file need to be treated differently from target file
-                """
-                tab_index = source_line.find('\t')
-                matching_index = source_line[:tab_index]
-                self.dict_of_parallel_sentences[matching_index] = ([], source_line[tab_index + 1:])
+        with codecs.open(self.target_lan_file_name, 'r', CODEC) as target_file_handler:
             for  target_line in target_file_handler:
                 """
                 Source file need to be treated differently from target file
                 """
+                target_line = self.cleanLine(target_line)
                 tab_index = target_line.find('\t')
                 matching_index = target_line[:tab_index]
                 self.dict_of_parallel_sentences[matching_index][0].append(target_line[tab_index + 1:])
+        
+        with codecs.open(self.source_lan_file_name, 'r', CODEC) as source_file_handler:
+            for source_line in source_file_handler:
+                """
+                Source file need to be treated differently from target file
+                """
+                source_line = self.cleanLine(source_line)
+                tab_index = source_line.find('\t')
+                matching_index = source_line[:tab_index]
+                self.dict_of_parallel_sentences[matching_index] = ([], source_line[tab_index + 1:])
+            
     
     def load_from_model_file(self, model_file_name):
         '''
@@ -83,57 +84,24 @@ class Evaluator(Model_Handler):
         for value in model_values:
             self.t_e_f [value[TARGET_KEY], value[SOURCE_KEY]] = value[PROBABILITY_KEY]
             
-    def calculateTranslationProbability(self, target_length,
-                                        target_token_indices,
-                                        source_length,
-                                        source_token_indices):
-        '''
-        Calcualte the translation probability based on the IBM model
-        log( target_sentence| source_sentence ) = - len(target_sentence)*log( len(source_sentence) + 1) 
-                                                + SUM_over_target ( log ( SUM_over_source( t_target_source )))
-                                                
-        Note that target_length is different from len(target_token_indices) 'cause 
-        target_token_indices might doesn't include some tokens which lack in the training.
-        
-        Arguments:
-        target_length -- length of the target sentence
-        target_token_indices -- indices of token given in the target sentence
-        source_length -- length of the source sentence
-        source_token_indices -- indices of token given in the source sentence
-        '''
-        sum_over_target = 0
-        for target_token_index in target_token_indices:
-            sum_over_source = 0
-            for source_token_index in source_token_indices:
-                sum_over_source += self.t_e_f[target_token_index, source_token_index]
-            sum_over_target += np.log(sum_over_source)
-        
-        translation_prob_log = sum_over_target - target_length * np.log(source_length + 1)
-        return translation_prob_log
     
     def evaluate(self):
         '''
         Evaluate the evaluation files
-        
         '''
         evaluate_result = {}
         for matching_index in self.dict_of_parallel_sentences:
             """
-            An auxillary file to tokenize the line and get the line length and line token indices
+            An auxillary function to tokenize the line and get the line length and line token indices
             """
-            def lineTokenizer( line, language ):
-                line_tokens = line.split(' ')
-                line_length = len(line_tokens)
-                line_token_indices = self.getIndexes(line_tokens, language)
-                return (line_length, line_token_indices)
             
             list_of_targets, source = self.dict_of_parallel_sentences[matching_index]
-            source_length, source_token_indices = lineTokenizer(source, self.source_lang)
+            source_length, source_token_indices = self.lineTokenizer(source, self.source_lang)
             
             best_translation = -1
             largest_translation_prob_log = None
             for i in xrange(len(list_of_targets)):
-                target_length, target_token_indices = lineTokenizer(list_of_targets[i], self.target_lang)
+                target_length, target_token_indices = self.lineTokenizer(list_of_targets[i], self.target_lang)
                 translation_prob_log = self.calculateTranslationProbability(target_length,
                                                                             target_token_indices,
                                                                             source_length,
