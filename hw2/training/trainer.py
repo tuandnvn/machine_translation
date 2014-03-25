@@ -4,6 +4,8 @@ Created on Mar 20, 2014
 @author: Tuan
 '''
 from collections import defaultdict
+import json
+import time
 
 from hw2.database.connection import DatabaseConnector
 from hw2.dictionary.dictionary import Dictionary
@@ -24,7 +26,8 @@ class Trainer(Model_Handler):
                  source_lang,
                  source_dict_file_name,
                  no_of_iterations,
-                 model_file_name):
+                 model_file_name,
+                 convergence_difference):
         '''
         Arguments:
         target_lan_file_name -- string, file name of target language  
@@ -35,21 +38,31 @@ class Trainer(Model_Handler):
         Model_Handler.__init__(self, target_lan_file_name, target_lang,
                                target_dict_file_name,
                                source_lan_file_name, source_lang,
-                               source_dict_file_name)
+                               source_dict_file_name,
+                               model_file_name)
+        self.no_of_iterations = no_of_iterations
+        self.convergence_difference = convergence_difference
+        
+        
         self.list_of_parallel_sentences = []
         self.t_e_f = None
         self.log_likelihood = None
-        
-        self.no_of_iterations = no_of_iterations
-        self.model_file_name = model_file_name
     
     def train(self):
-        self.init_list_of_parallel_sentences()
+        begin_time = time.time()
+        self.initListOfParallelSentences()
         self.buildDictionarySaveToFile()
-        self.runEMTrainingLoop()
-        self.saveToModelFile()
+        print 'Time to build Dictionaries ' + str(time.time() - begin_time)
         
-    def init_list_of_parallel_sentences(self):
+        begin_time = time.time()
+        self.runEMTrainingLoop()
+        print 'Time to run EM algorithm ' + str(time.time() - begin_time)
+        
+        begin_time = time.time()
+        self.saveToNpyModelFile()
+        print 'Time to save to model file ' + str(time.time() - begin_time)
+        
+    def initListOfParallelSentences(self):
         """
         Init parallel sentences for runEMTrainingLoop data only
         """
@@ -80,8 +93,8 @@ class Trainer(Model_Handler):
                                                   len(source_tokens), source_token_indices))
         self.target_lexicon_size = self.dictionary[self.target_lang].getDictSize()
         self.source_lexicon_size = self.dictionary[self.source_lang].getDictSize()
-        print 'self.target_lexicon_size '+ str(self.target_lexicon_size)
-        print 'self.source_lexicon_size '+ str(self.source_lexicon_size)
+        print 'self.target_lexicon_size ' + str(self.target_lexicon_size)
+        print 'self.source_lexicon_size ' + str(self.source_lexicon_size)
     
     def buildDictionarySaveToFile(self):
         '''
@@ -90,8 +103,8 @@ class Trainer(Model_Handler):
         '''
         self.buildDictionary()
         self.saveDictionary()
-        
-    def saveToModelFile(self):
+    
+    def saveToDatabaseModelFile(self):
         self.model_database_connect(self.model_file_name)
         
         input_data = []
@@ -99,15 +112,11 @@ class Trainer(Model_Handler):
             for j in xrange(self.source_lexicon_size):
                 input_data.append((j, i, float(self.t_e_f[i, j])))
         self.database.insertMany(input_data)
-        
-    def _defaultCheck(self):
-        '''
-        Check the condition of convergence
-        '''
-        if 't_e_f' not in self.__dict__:
-            raise Exception('Translation model has not been built yet. Only use with runEMTrainingLoop.')
     
-    def checkConvergence(self):
+    def saveToNpyModelFile(self):
+        np.save(self.model_file_name, self.t_e_f)
+    
+    def isConvergent(self):
         '''
         We will calculate the log-likelihood
         log P ( target sentences | source sentences, model parameters) = 
@@ -116,21 +125,21 @@ class Trainer(Model_Handler):
         log_likelihood = 0
         for (target_length, target_token_indices,
             source_length, source_token_indices) in self.list_of_parallel_indices:
-            log_likelihood += self.calculateTranslationProbability(target_length, 
-                                                                   target_token_indices, 
-                                                                   source_length, 
+            log_likelihood += self.calculateTranslationProbability(target_length,
+                                                                   target_token_indices,
+                                                                   source_length,
                                                                    source_token_indices)
         
-        print 'log_likelihood ' + log_likelihood
+        print 'log_likelihood ' + str(log_likelihood)
         if self.log_likelihood == None:
             self.log_likelihood = log_likelihood
             return False
-        if np.abs(log_likelihood - self.log_likelihood) < CONVERGENCE_DIFFERENCE:
+        if np.abs(log_likelihood - self.log_likelihood) < self.convergence_difference:
             self.log_likelihood = log_likelihood
-            return False
+            return True
         self.log_likelihood = log_likelihood
         
-    def runEMTrainingLoop(self, convergence_check=_defaultCheck):
+    def runEMTrainingLoop(self):
         '''
         '''
         """
@@ -142,15 +151,16 @@ class Trainer(Model_Handler):
         """
         Uniformly initiated
         """
-        self.t_e_f.fill(1 / (self.target_lexicon_size * self.source_lexicon_size))
+        self.t_e_f.fill(float(1) / (self.target_lexicon_size * self.source_lexicon_size))
         
         """
         count(e|f) is c_e_f
         """
-        self.c_e_f = np.zeros((self.target_lexicon_size, self.source_lexicon_size))
-        self.total_f = np.zeros(self.source_lexicon_size)
+        
         
         for i in xrange(self.no_of_iterations):
+            self.c_e_f = np.zeros((self.target_lexicon_size, self.source_lexicon_size))
+            self.total_f = np.zeros(self.source_lexicon_size)
             print 'Iteration ' + str(i)
             for (target_length, target_token_indices,
                  source_length, source_token_indices) in self.list_of_parallel_indices:
@@ -158,6 +168,7 @@ class Trainer(Model_Handler):
                 for target_token_index in target_token_indices:
                     for source_token_index in source_token_indices:
                         s_total[target_token_index] += self.t_e_f[target_token_index, source_token_index]
+                
                 for target_token_index in target_token_indices:
                     for source_token_index in source_token_indices:
                         self.c_e_f[target_token_index, source_token_index] += \
@@ -166,3 +177,5 @@ class Trainer(Model_Handler):
                                  self.t_e_f[target_token_index, source_token_index] / s_total[target_token_index]
                         
             self.t_e_f = self.c_e_f / self.total_f
+            if self.isConvergent():
+                break

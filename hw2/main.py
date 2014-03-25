@@ -28,6 +28,9 @@ if __name__ == '__main__':
                         help='Specify the target language (the English language in IBM model) and target file.')
     parser.add_argument('-i', '--%s' % ITERATION_OPTION, default=None, nargs=1, type=int,
                         help='Specify the maximum iteration.')
+    parser.add_argument('-c', '--%s' % CONVERGENCE_OPTION, nargs=1, type=float, default=0.1,
+                        help='Specify the convergence difference to stop looping. Default = 0.1')
+    
     
     parser.add_argument('-x', '--%s' % SAMPLING_OPTION, default=None, nargs=1, type=int,
                         help='Specify the number of sentences should be sampled.')
@@ -74,9 +77,12 @@ if __name__ == '__main__':
             source_dictionary_file, target_dictionary_file = args[DICTIONARY_OPTION]
         else:
             raise Exception('Dictionary files are not specified.')
+        
+        convergence_difference = args[CONVERGENCE_OPTION]
         trainer_handler = Trainer(target_file, target_lan, target_dictionary_file,
                                   source_file, source_lan, source_dictionary_file,
-                                  no_of_iterations, model_file_name)
+                                  no_of_iterations, model_file_name, 
+                                  convergence_difference)
         trainer_handler.train()
         
     elif mode == EVALUATION_MODE:
@@ -84,10 +90,17 @@ if __name__ == '__main__':
         Testing the trained IBM 1 model using the data
         """
         if args[MODEL_OPTION] != None:
-            model_file = args[MODEL_OPTION][0]
+            model_file_name = args[MODEL_OPTION][0]
         else:
             raise Exception('Model file is not specified.')
-        evaluator_handler = Evaluator(target_file, target_lan, source_file, source_lan)
+        
+        if args[DICTIONARY_OPTION] != None:
+            source_dictionary_file, target_dictionary_file = args[DICTIONARY_OPTION]
+        else:
+            raise Exception('Dictionary files are not specified.')
+        evaluator_handler = Evaluator(target_file, target_lan, target_dictionary_file,
+                                  source_file, source_lan, source_dictionary_file,
+                                  model_file_name)
         evaluator_handler.evaluate()
     elif mode == SAMPLING_MODE:
         if args[SAMPLING_OPTION] != None:
@@ -109,4 +122,4 @@ if __name__ == '__main__':
                                [(target_file + TRAIN_EXT, source_file + TRAIN_EXT , prob[0]),
                                 (target_file + DEV_EXT, source_file + DEV_EXT, prob[1]),
                                 (target_file + TEST_EXT, source_file + TEST_EXT, prob[2])])
-    print str(time.time() - begin_time)
+    print 'Total time ' + str(time.time() - begin_time)

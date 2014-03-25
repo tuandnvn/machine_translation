@@ -4,6 +4,7 @@ Created on Mar 21, 2014
 @author: Tuan
 '''
 import json
+from hw2.util import *
 
 class Dictionary(object):
     '''
@@ -39,12 +40,12 @@ class Dictionary(object):
         return len(self._index_to_token)
     
     def saveToFile(self, file_name):
-        with open(file_name, 'w') as file_handler:
+        with codecs.open(file_name, 'w', CODEC) as file_handler:
             json.dump( self._index_to_token, file_handler )
     
     def loadFromFile(self, file_name):
-        with open(file_name, 'r') as file_handler:
-            json.load( self._index_to_token, file_handler )
+        with codecs.open(file_name, 'r', CODEC) as file_handler:
+            self._index_to_token = json.load( file_handler )
             self._token_to_index = {} 
             for i in xrange(len(self._index_to_token)):
                 self._token_to_index[self._index_to_token[i]] = i 

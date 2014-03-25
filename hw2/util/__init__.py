@@ -12,6 +12,7 @@ MODEL_OPTION = 'model_file'
 SAMPLING_OPTION = 'sampling_number'
 TDT_PROP_OPTION = 'train_dev_test_prob'
 DICTIONARY_OPTION = 'dictionary'
+CONVERGENCE_OPTION = 'convergence'
 
 EVALUATION_MODE = 'evaluate'
 TRAIN_MODE = 'train'
@@ -35,10 +36,5 @@ DEV_EXT = '.dev'
 TEST_EXT = '.test'
 FILE_INDEX = 0
 LANG_INDEX = 1
-ENDING_STRS = ['.\n', '\n', '?', ').', ')']
+ENDING_STRS = ['.', '?', ')']
 BEGINNING_STRS = ['(']
-
-"""
-Training specification
-"""
-CONVERGENCE_DIFFERENCE = 1
