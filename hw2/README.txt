@@ -2,6 +2,7 @@ Homework 2:
 
 @TUAN DO NGOC
 
+The 
 =============================================================================
 Parameters of main.py:
 usage: main.py [-h] [-m {evaluate,train,sample}] -s Source_language
@@ -60,15 +61,11 @@ es-en\europarl-v7.es-en.en.100.sampling
 	- Divergence condition = 1;
 	- Number of maximum iteration = 30
 	- Using null token
--s es-en\europarl-v7.es-en.es.100.sampling Spanish -t es-en\europarl-v7.es-en.en.100.sampling English 
--D es-en\europarl-v7.es-en.es.100.dict es-en\europarl-v7.es-en.en.100.dict -m train -d model_100.npy 
--i 30 -c 1 -n 1
+-s es-en\europarl-v7.es-en.es.100.sampling Spanish -t es-en\europarl-v7.es-en.en.100.sampling English -D es-en\europarl-v7.es-en.es.100.dict es-en\europarl-v7.es-en.en.100.dict -m train -d model_100.npy -i 30 -c 1 -n 1
 
 ===Testing with fabricated input
 	- Using null token
--s es-en\europarl-v7.es-en.es.100.test Spanish -t es-en\europarl-v7.es-en.en.100.test English 
--D es-en\europarl-v7.es-en.es.100.dict es-en\europarl-v7.es-en.en.100.dict -m evaluate -d model_100.npy 
--n 1
+-s es-en\europarl-v7.es-en.es.100.test Spanish -t es-en\europarl-v7.es-en.en.100.test English -D es-en\europarl-v7.es-en.es.100.dict es-en\europarl-v7.es-en.en.100.dict -m evaluate -d model_100.npy -n 1
 
 =============================================================================
 Output from experiments (Initial I used the database connector I made last time for homework 1 to save the model, but it turnt out

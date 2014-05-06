@@ -3,9 +3,6 @@ Created on March 23, 2014
 
 @author: Tuan
 '''
-"""
-Get rid of UTF-8 BOM
-"""
 
 import argparse
 import time
@@ -13,7 +10,7 @@ import time
 from hw2.fileHandler.sampler import Sampler
 from hw2.fileHandler.train_dev_test import TrainDevTest
 from hw2.training import *
-from util import *
+from hw2.util import *
 
 
 if __name__ == '__main__':

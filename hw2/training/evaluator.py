@@ -150,6 +150,10 @@ class Evaluator(MTModelHandler):
     
 
 class EvaluatorWithNull(Evaluator):
+    """
+    Only to take into account the NULL token added into SOURCE sentence 
+    when matching SOURCE and TARGET sentences.
+    """
     def __init__(self, target_lan_file_name,
                  target_lang,
                  target_dict_file_name,
